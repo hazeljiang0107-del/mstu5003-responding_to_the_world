@@ -4,15 +4,16 @@
 
 It's 1 AM and you're alone with an old radio. You have to *find* someone out there.
 
-The interface is a vintage radio with five inputs:
+The interface is a bright pixel-art radio. The controls aren't in a panel. They're **paper notes clipped to a clothesline**, swaying gently, swinging when you touch them, and dancing faster when a station locks in.
 
-- **Tuning slider** (88–108 FM), plus arrow keys for fine-tuning
-- **Antenna knob** (0–180°)
-- **Volume slider**
-- **Time-of-night dropdown** (11 PM / 1 AM / 3 AM)
-- **Call-in text box**: type a message to the night host and press Enter
+- **Tuning note:** slider (88–108 FM) plus ◀ ▶ buttons. You can also use the arrow keys or scroll on the radio's dial to nudge.
+- **Antenna note:** slider (0–180°). You can also **drag the actual antenna** on the radio.
+- **Volume note:** slider
+- **Time note:** pick 11 PM / 1 AM / 3 AM. The pixel sky changes from a sunset to purple to electric blue.
+- **Call-in note:** type a message to the night host and hit SEND. The host's reply gets written back onto the note.
+- **Power note**, and one weird input: **click the speaker (or press Space) to smack the radio.**
 
-There's also a **Power button** and one weird input: **pressing Space smacks the radio**.
+A second clothesline is the **Station Log**: five blank "?" notes. Every time you hold a station clearly for a moment, its note **drops in and clips onto the rope**. Click any note to **flip it over**. Undiscovered notes give a hint on the back, and found ones show a line you heard. Find all five and you get pixel confetti.
 
 No single input does much on its own. The feeling comes from how they combine:
 
@@ -58,8 +59,12 @@ every 200ms:
 
 ## UI Design Decisions
 
-- **Slider for tuning, knob for antenna.** Both are continuous inputs, because I wanted the user to *search*, not pick. A dropdown of stations would remove the whole feeling.
-- **Dropdown for time of night.** Time is a choice of setting, not something you fine-tune, so a discrete menu fit.
+- **Pixel art, but vivid.** "Late night" usually means dark and moody, but I wanted it to feel *hopeful*, not gloomy. So the sky is banded hot pink, purple, and electric blue, the radio is bubblegum pink, and the static is actual chunky pixels on a Game Boy-green screen.
+- **Notes on a clothesline.** Controls hung on a rope feel handmade and alive. They sway on their own like there's a breeze through an open window. Interacting makes them swing, so every input gets physical feedback.
+- **Station Log as a collection.** Clipping a new note onto the rope gives a small "got it!" moment and makes discovery visible. The flip-for-a-hint backs solve a problem I had earlier: nobody would ever find the secret 3 AM station without a clue.
+- **Two ways to do the same thing.** You can drag the antenna or use the slider, and nudge with buttons, arrows, or scrolling. Direct manipulation (grabbing the antenna) feels better, while the note controls are more precise.
+- **Slider for tuning, antenna for angle.** Both are continuous inputs, because I wanted the user to *search*, not pick. A dropdown of stations would remove the whole feeling.
+- **Buttons for time of night.** Time is a choice of setting, not something you fine-tune, so three discrete options fit.
 - **Text input for calling in.** It's the only place you "speak," and the system answers back through the same noisy channel.
 - **Keyboard: arrows and Space.** Arrows let you nudge more precisely than dragging. Space as a "smack" adds a physical, slightly unreliable gesture.
 - **Signal bars and a mood label** ("lost / almost / locked / warm") make the hidden state visible, so the user can tell they're getting closer.
@@ -76,5 +81,5 @@ I used an AI coding assistant to help build the prototype and the signal math.
 ## Still Figuring Out
 
 - **Balancing the drift:** where's the line between "I want to keep tending this" and "this is annoying"? Maybe it should depend on the station, e.g. the numbers station drifts the most because it's eerie.
-- **Discoverability of the secret station:** right now nothing hints at it. I'm thinking the forecast station could drop a clue at 1 AM ("clear skies straight overhead around three").
+- **Are the hints too generous?** Flipping a "?" note tells you nearly exactly where a station is. Maybe hints should unlock only after you've struggled for a while.
 - **What happens after warmth?** Should the host remember your call-in message later, so the radio feels like a relationship rather than a single moment?

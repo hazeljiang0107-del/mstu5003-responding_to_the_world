@@ -4,207 +4,430 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Late Night Radio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --ink: #1b1035;
+      --pink: #ff4fa3;
+      --yellow: #ffe14d;
+      --lime: #9dff5c;
+      --cyan: #4de8ff;
+      --orange: #ff9f1c;
+    }
+
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: "Courier New", ui-monospace, monospace;
-      color: #f3e6cf;
-      background: radial-gradient(circle at 50% 40%, #2a2233, #0d0b12 70%);
-      transition: background 1.5s ease;
+      font-family: "VT323", monospace;
+      font-size: 20px;
+      color: var(--ink);
+      overflow-x: hidden;
+      -webkit-font-smoothing: none;
     }
-    body[data-time="11pm"] { background: radial-gradient(circle at 50% 40%, #33304a, #12101a 70%); }
-    body[data-time="3am"]  { background: radial-gradient(circle at 50% 40%, #1a1622, #050407 70%); }
-    body[data-mood="warm"] { background: radial-gradient(circle at 50% 40%, #6b3b22, #140b08 70%); }
 
+    /* ---------- pixel sky ---------- */
+    .sky {
+      position: fixed; inset: 0; z-index: -2;
+      background: linear-gradient(to bottom,
+        var(--s1) 0 20%, var(--s2) 20% 40%, var(--s3) 40% 60%, var(--s4) 60% 80%, var(--s5) 80%);
+      transition: filter 1s ease;
+    }
+    body[data-time="11pm"] { --s1: #ff5e9c; --s2: #ff7f8a; --s3: #ffa06b; --s4: #ffc65c; --s5: #ffe66d; }
+    body[data-time="1am"]  { --s1: #4b2bff; --s2: #7a3dff; --s3: #a94dff; --s4: #d65cff; --s5: #ff6bd5; }
+    body[data-time="3am"]  { --s1: #1d3bff; --s2: #2463ff; --s3: #2b8cff; --s4: #31b8ff; --s5: #3fe0ff; }
+    body[data-mood="warm"] .sky { filter: saturate(1.4) sepia(.35) hue-rotate(-15deg) brightness(1.08); }
+
+    .stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+    .stars i {
+      position: absolute; width: 4px; height: 4px; background: #fff;
+      animation: twinkle 1.6s steps(2) infinite;
+    }
+    body[data-time="11pm"] .stars { opacity: .25; }
+    @keyframes twinkle { 50% { opacity: .2; } }
+
+    .cloud {
+      position: fixed; z-index: -1; width: 8px; height: 8px;
+      background: #fff; opacity: .85;
+      box-shadow:
+        8px 0 #fff, 16px 0 #fff, 24px 0 #fff, 32px 0 #fff,
+        -8px 8px #fff, 0 8px #fff, 8px 8px #fff, 16px 8px #fff, 24px 8px #fff, 32px 8px #fff, 40px 8px #fff,
+        -16px 16px #fff, -8px 16px #fff, 0 16px #fff, 8px 16px #fff, 16px 16px #fff, 24px 16px #fff, 32px 16px #fff, 40px 16px #fff, 48px 16px #fff;
+      transform: scale(2);
+      animation: drift 60s linear infinite;
+    }
+    .cloud.c2 { top: 62%; animation-duration: 90s; animation-delay: -40s; opacity: .6; }
+    @keyframes drift { from { left: -120px; } to { left: 110vw; } }
+
+    /* ---------- header ---------- */
+    header { text-align: center; padding: 28px 16px 0; }
+    h1 {
+      margin: 0;
+      font-family: "Press Start 2P", monospace;
+      font-size: clamp(18px, 4vw, 34px);
+      color: var(--yellow);
+      text-shadow: 4px 4px 0 var(--ink), -2px -2px 0 var(--pink);
+      letter-spacing: 2px;
+    }
+    .tagline { margin: 10px 0 0; color: #fff; text-shadow: 2px 2px 0 var(--ink); font-size: 22px; }
+
+    /* ---------- radio ---------- */
     .radio {
-      width: min(720px, 94vw);
-      padding: 28px;
-      border-radius: 28px;
-      background: linear-gradient(#6b4a33, #4a3222);
-      box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 30px 60px rgba(0,0,0,.6);
-      transition: box-shadow 1.5s ease;
+      position: relative;
+      width: min(660px, 92vw);
+      margin: 150px auto 0;
+      padding: 22px;
+      background: var(--pink);
+      border: 4px solid var(--ink);
+      box-shadow: inset -8px -8px 0 #d6337f, inset 8px 8px 0 #ff8cc6, 10px 10px 0 var(--ink);
     }
-    body[data-mood="warm"] .radio {
-      box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 0 90px 10px rgba(255,150,70,.35), 0 30px 60px rgba(0,0,0,.6);
+    body[data-mood="warm"] .radio { background: var(--orange); box-shadow: inset -8px -8px 0 #e0790a, inset 8px 8px 0 #ffc46b, 10px 10px 0 var(--ink); }
+    .radio.thunk { animation: thunk .3s steps(3); }
+    @keyframes thunk { 33% { transform: translate(-6px, 4px); } 66% { transform: translate(6px, -2px); } }
+
+    .antenna-base {
+      position: absolute; top: -16px; right: 96px;
+      width: 28px; height: 16px;
+      background: #9a9ab5; border: 4px solid var(--ink); border-bottom: none;
+    }
+    .antenna {
+      position: absolute; bottom: 100%; left: 50%;
+      width: 10px; height: 130px; margin-left: -5px;
+      background: repeating-linear-gradient(#e8e8f5 0 8px, #a7a7c4 8px 16px);
+      border: 3px solid var(--ink);
+      transform-origin: 50% 100%;
+      transform: rotate(var(--a, -50deg));
+      cursor: grab;
+      touch-action: none;
+    }
+    .antenna::after {
+      content: ""; position: absolute; top: -14px; left: 50%; margin-left: -9px;
+      width: 18px; height: 14px; background: var(--yellow); border: 3px solid var(--ink);
+    }
+    .antenna:active { cursor: grabbing; }
+    .antenna-hint {
+      position: absolute; top: -150px; right: -10px;
+      font-family: "Press Start 2P"; font-size: 9px; color: #fff; text-shadow: 2px 2px 0 var(--ink);
+      animation: bob 1s steps(2) infinite;
+    }
+    @keyframes bob { 50% { transform: translateY(-4px); } }
+
+    .radio-body { display: grid; grid-template-columns: 150px 1fr; gap: 18px; }
+
+    .speaker {
+      border: 4px solid var(--ink);
+      background:
+        conic-gradient(var(--ink) 25%, transparent 0 50%, var(--ink) 0 75%, transparent 0) 0 0 / 12px 12px,
+        #ffd1e8;
+      cursor: pointer;
+      position: relative;
+    }
+    .speaker:hover { background-color: #fff; }
+    .speaker span {
+      position: absolute; bottom: 6px; left: 0; right: 0; text-align: center;
+      font-family: "Press Start 2P"; font-size: 8px; background: var(--yellow); padding: 4px 0;
     }
 
-    /* ---------- display ---------- */
     .screen {
       position: relative;
-      padding: 18px 20px;
-      border-radius: 14px;
-      background: #1c2a1f;
-      color: #9dff9d;
-      box-shadow: inset 0 0 30px rgba(0,0,0,.8);
-      min-height: 170px;
+      min-height: 200px;
+      padding: 14px 16px;
+      background: #b8f35a;
+      color: #173a0f;
+      border: 4px solid var(--ink);
+      box-shadow: inset 6px 6px 0 #8fd13a;
       overflow: hidden;
     }
-    .screen.off { color: #2d3d30; }
-    body[data-mood="warm"] .screen { color: #ffd59a; background: #2a1d12; }
+    .screen.off { background: #5d7a3a; color: #3e5426; box-shadow: inset 6px 6px 0 #4c6630; }
+    body[data-mood="warm"] .screen { background: #ffd166; color: #5a2a00; box-shadow: inset 6px 6px 0 #ffb43b; }
 
-    .screen-top { display: flex; justify-content: space-between; align-items: baseline; }
-    .freq { font-size: 2.4rem; font-weight: bold; letter-spacing: 2px; }
-    .station { font-size: .95rem; opacity: .85; }
-    .line { margin-top: 14px; font-size: 1.05rem; line-height: 1.5; min-height: 3em; }
-
-    .bars { display: flex; gap: 4px; align-items: flex-end; height: 22px; }
-    .bars i { width: 7px; background: currentColor; opacity: .15; border-radius: 2px; }
+    .static-canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      image-rendering: pixelated; pointer-events: none;
+    }
+    .screen-top { position: relative; display: flex; justify-content: space-between; align-items: flex-start; }
+    .freq { font-family: "Press Start 2P"; font-size: 22px; }
+    .bars { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+    .bars i { width: 8px; background: currentColor; opacity: .2; }
     .bars i.on { opacity: 1; }
     .bars i:nth-child(1) { height: 20%; } .bars i:nth-child(2) { height: 40%; }
     .bars i:nth-child(3) { height: 60%; } .bars i:nth-child(4) { height: 80%; }
     .bars i:nth-child(5) { height: 100%; }
+    .station { position: relative; margin-top: 8px; font-size: 20px; }
+    .mood-tag { display: inline-block; padding: 0 6px; background: #173a0f; color: #b8f35a; margin-left: 6px; }
+    body[data-mood="warm"] .mood-tag { background: #5a2a00; color: #ffd166; }
+    .line { position: relative; margin: 8px 0 0; font-size: 22px; line-height: 1.15; min-height: 2.4em; }
 
-    .static {
-      position: absolute; inset: 0; pointer-events: none;
-      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 3px);
-      opacity: 0;
-      animation: flicker .12s steps(2) infinite;
-    }
-    @keyframes flicker { 50% { transform: translateY(1px); } }
+    .eq { position: relative; display: flex; gap: 4px; align-items: flex-end; height: 36px; margin-top: 6px; }
+    .eq i { flex: 1; height: 4px; background: currentColor; transition: height .15s steps(3); }
 
-    /* ---------- dial strip ---------- */
     .dial {
+      position: relative; margin-top: 18px; height: 44px;
+      background: #fff6c9; border: 4px solid var(--ink);
+      font-family: "Press Start 2P"; font-size: 9px;
+      cursor: ew-resize;
+    }
+    .ticks { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
+    .dial-marks { position: absolute; left: 10px; right: 10px; bottom: 0; height: 8px;
+      background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 12px); }
+    .needle { position: absolute; top: -8px; bottom: -8px; width: 6px; margin-left: -3px; background: #ff2e2e; border: 2px solid var(--ink); }
+
+    .pop {
+      position: fixed; z-index: 50; pointer-events: none;
+      font-family: "Press Start 2P"; font-size: 14px; color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--ink);
+      animation: popUp 1s steps(6) forwards;
+    }
+    @keyframes popUp { to { transform: translateY(-60px); opacity: 0; } }
+
+    /* ---------- clotheslines ---------- */
+    .line-wrap { position: relative; margin: 50px auto 0; width: min(1100px, 96vw); }
+    .line-title {
+      font-family: "Press Start 2P"; font-size: 12px; color: #fff;
+      text-shadow: 3px 3px 0 var(--ink); text-align: center; margin-bottom: 4px;
+    }
+    .rope { position: absolute; left: 0; right: 0; top: 22px; width: 100%; height: 120px; pointer-events: none; }
+    .rope path { fill: none; stroke: #f3d9a4; stroke-width: 5; stroke-dasharray: 8 4; }
+    .rope .shadow { stroke: var(--ink); stroke-width: 9; stroke-dasharray: none; }
+
+    .notes { position: relative; display: flex; justify-content: space-around; align-items: flex-start; min-height: 260px; }
+
+    .note {
       position: relative;
-      margin: 20px 0 6px;
-      height: 46px;
-      border-radius: 10px;
-      background: #f1e3c4;
-      color: #3a2a1d;
-      font-size: .75rem;
-      overflow: hidden;
+      width: 160px;
+      padding: 26px 12px 14px;
+      background: var(--paper, #fff275);
+      border: 4px solid var(--ink);
+      box-shadow: 6px 6px 0 rgba(27,16,53,.55);
+      transform-origin: 50% -10px;
+      animation: sway var(--dur, 3.4s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
     }
-    .ticks { position: absolute; inset: 0; display: flex; justify-content: space-between; padding: 6px 14px; }
-    .needle {
-      position: absolute; top: 0; bottom: 0; width: 3px;
-      background: #c0392b;
-      transition: left .15s ease;
+    .note::before {
+      content: ""; position: absolute; top: -22px; left: 50%; margin-left: -9px;
+      width: 18px; height: 34px;
+      background: linear-gradient(90deg, #c8814a 0 45%, var(--ink) 45% 55%, #a86434 55%);
+      border: 3px solid var(--ink);
     }
-    input[type="range"] { width: 100%; accent-color: #e9b872; }
+    .note:hover { animation-duration: 1.1s; }
+    .note.swing { animation: swing .8s steps(8); }
+    body[data-mood="locked"] .note, body[data-mood="warm"] .note { animation-duration: 1.4s; }
+    @keyframes sway  { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2.5deg); } }
+    @keyframes swing { 0% { transform: rotate(0); } 20% { transform: rotate(9deg); } 45% { transform: rotate(-6deg); } 70% { transform: rotate(3deg); } 100% { transform: rotate(0); } }
 
-    /* ---------- controls ---------- */
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 18px;
-      margin-top: 18px;
-      align-items: start;
-    }
-    .control label, .control .title { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; opacity: .85; }
+    .note h3 { margin: 0 0 8px; font-family: "Press Start 2P"; font-size: 10px; letter-spacing: 1px; }
+    .note .val { font-size: 22px; }
+    .note small { display: block; font-size: 17px; line-height: 1; opacity: .75; margin-top: 6px; }
 
-    .knob {
-      width: 74px; height: 74px; margin: 0 auto 6px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #d9c6a3, #8a7354);
-      position: relative;
-      box-shadow: 0 6px 12px rgba(0,0,0,.4);
-    }
-    .knob::after {
-      content: ""; position: absolute; left: 50%; top: 6px;
-      width: 4px; height: 24px; margin-left: -2px;
-      background: #3a2a1d; border-radius: 2px;
-      transform-origin: 2px 31px;
-      transform: rotate(var(--angle, 0deg));
-    }
-
-    .power {
-      width: 100%;
-      padding: 12px;
-      border: none; border-radius: 12px;
-      font: inherit; font-weight: bold; letter-spacing: 2px;
-      background: #2a1d14; color: #f3e6cf;
+    .px-btn {
+      font-family: "Press Start 2P"; font-size: 10px;
+      padding: 8px 10px;
+      background: #fff; color: var(--ink);
+      border: 3px solid var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
       cursor: pointer;
     }
-    .power[aria-pressed="true"] { background: #e9b872; color: #2a1d14; }
+    .px-btn:active { transform: translate(3px, 3px); box-shadow: none; }
+    .px-btn.big { width: 100%; padding: 14px 0; font-size: 12px; background: var(--lime); }
+    .px-btn.big[aria-pressed="true"] { background: #ff2e63; color: #fff; }
+    .btn-row { display: flex; gap: 6px; margin-top: 8px; }
+    .btn-row .px-btn { flex: 1; padding: 6px 0; }
 
-    select, input[type="text"] {
-      width: 100%; padding: 9px 10px;
-      font: inherit; font-size: .9rem;
-      background: #f1e3c4; color: #2a1d14;
-      border: none; border-radius: 8px;
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 12px; margin: 6px 0;
+      background: var(--ink);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 22px;
+      background: var(--yellow); border: 3px solid var(--ink); cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px; height: 18px; border-radius: 0;
+      background: var(--yellow); border: 3px solid var(--ink); cursor: pointer;
     }
 
-    .callin { grid-column: 1 / -1; }
-    .help { margin: 16px 0 0; font-size: .78rem; opacity: .6; line-height: 1.5; }
-    kbd { padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.15); }
+    .time-opts { display: grid; gap: 6px; }
+    .time-opts input { position: absolute; opacity: 0; }
+    .time-opts label {
+      display: block; padding: 4px 8px; font-size: 20px;
+      border: 3px solid var(--ink); background: #fff; cursor: pointer;
+    }
+    .time-opts input:checked + span { display: block; margin: -4px -8px; padding: 4px 8px; background: var(--ink); color: var(--yellow); }
+    .time-opts input:focus-visible + span { outline: 3px dashed var(--ink); outline-offset: 4px; }
 
-    .radio.thunk { animation: thunk .25s ease; }
-    @keyframes thunk { 30% { transform: translateY(6px) rotate(-.6deg); } }
+    .note input[type="text"] {
+      width: 100%; padding: 6px; font: inherit; font-size: 19px;
+      border: 3px solid var(--ink); background: #fff;
+    }
+    .reply { font-size: 17px; line-height: 1.05; margin-top: 8px; min-height: 2em; }
 
-    @media (max-width: 620px) { .controls { grid-template-columns: 1fr; } }
+    /* ---------- station log ---------- */
+    .log .note { width: 140px; min-height: 150px; cursor: pointer; text-align: center; }
+    .log .note.unknown { --paper: #ffffff !important; opacity: .55; border-style: dashed; }
+    .log .note.unknown .q { font-family: "Press Start 2P"; font-size: 34px; margin: 18px 0 10px; }
+    .log .note .stamp { font-family: "Press Start 2P"; font-size: 13px; margin: 4px 0 8px; }
+    .log .note .flip-hint { font-size: 15px; opacity: .6; }
+    .log .note.flipping { animation: flip .35s steps(4); }
+    .log .note.clipped { animation: clipIn 1s steps(8); }
+    @keyframes flip   { 50% { transform: scaleX(0); } }
+    @keyframes clipIn { 0% { transform: translateY(-200px) rotate(-20deg); } 50% { transform: translateY(10px) rotate(8deg); } 75% { transform: rotate(-4deg); } 100% { transform: none; } }
+
+    .banner {
+      position: fixed; left: 50%; top: 40%; z-index: 60;
+      transform: translate(-50%, -50%);
+      padding: 22px 28px;
+      font-family: "Press Start 2P"; font-size: 16px; text-align: center; line-height: 1.6;
+      background: var(--yellow); border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--ink);
+      display: none;
+    }
+    .banner.show { display: block; animation: thunk .4s steps(3); }
+    .confetti { position: fixed; z-index: 55; width: 10px; height: 10px; pointer-events: none; animation: fall 2.4s steps(12) forwards; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+
+    footer { text-align: center; padding: 30px 16px 40px; color: #fff; text-shadow: 2px 2px 0 var(--ink); font-size: 20px; }
+    kbd { font-family: "Press Start 2P"; font-size: 10px; padding: 3px 6px; background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+
+    @media (max-width: 760px) {
+      .radio-body { grid-template-columns: 1fr; }
+      .speaker { height: 60px; }
+      .notes { flex-wrap: wrap; gap: 30px 10px; }
+      .note { margin-top: 20px !important; }
+      .rope { display: none; }
+    }
   </style>
 </head>
 <body data-time="1am" data-mood="off">
-  <main class="radio" id="radio">
-    <section class="screen off" id="screen" aria-live="polite">
-      <div class="static" id="static"></div>
-      <div class="screen-top">
-        <span class="freq" id="freq">--.- FM</span>
-        <span class="bars" id="bars" aria-label="Signal strength"><i></i><i></i><i></i><i></i><i></i></span>
-      </div>
-      <div class="station" id="station">radio is off</div>
-      <p class="line" id="line">press POWER. it's late. someone is out there.</p>
-    </section>
+  <div class="sky"></div>
+  <div class="stars" id="stars"></div>
+  <div class="cloud" style="top: 14%"></div>
+  <div class="cloud c2"></div>
 
-    <div class="dial" aria-hidden="true">
+  <header>
+    <h1>LATE NIGHT RADIO</h1>
+    <p class="tagline">tune in. hold on. someone is out there.</p>
+  </header>
+
+  <main class="radio" id="radio">
+    <div class="antenna-base" id="antenna-base">
+      <div class="antenna" id="antenna" title="Drag me"></div>
+    </div>
+    <span class="antenna-hint" id="antenna-hint">drag the antenna ↓</span>
+
+    <div class="radio-body">
+      <div class="speaker" id="speaker" title="Smack the radio"><span>SMACK ME</span></div>
+
+      <section class="screen off" id="screen" aria-live="polite">
+        <canvas class="static-canvas" id="static" width="80" height="40"></canvas>
+        <div class="screen-top">
+          <span class="freq" id="freq">--.-</span>
+          <span class="bars" id="bars" aria-label="Signal strength"><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+        <div class="station"><span id="station">radio is off</span><span class="mood-tag" id="mood-tag">off</span></div>
+        <p class="line" id="line">press POWER on the first note below.</p>
+        <div class="eq" id="eq"></div>
+      </section>
+    </div>
+
+    <div class="dial" id="dial" title="Scroll here to fine-tune">
       <div class="ticks"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span></div>
+      <div class="dial-marks"></div>
       <div class="needle" id="needle"></div>
     </div>
-    <input type="range" id="tune" min="88" max="108" step="0.1" value="96" aria-label="Tuning">
+  </main>
 
-    <div class="controls">
-      <div class="control">
-        <span class="title">Power</span>
-        <button class="power" id="power" aria-pressed="false">POWER</button>
+  <!-- the control notes -->
+  <section class="line-wrap" data-sag="46">
+    <div class="line-title">CONTROLS</div>
+    <svg class="rope" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><path class="shadow"/><path/></svg>
+    <div class="notes">
+      <div class="note" style="--paper:#9dff5c">
+        <h3>POWER</h3>
+        <button class="px-btn big" id="power" aria-pressed="false">ON</button>
+        <small>sound starts after this click</small>
       </div>
 
-      <div class="control">
-        <label for="antenna">Antenna</label>
-        <div class="knob" id="knob"></div>
-        <input type="range" id="antenna" min="0" max="180" value="40">
+      <div class="note" style="--paper:#4de8ff">
+        <h3>TUNING</h3>
+        <div class="val"><span id="tune-val">96.0</span> FM</div>
+        <input type="range" id="tune" min="88" max="108" step="0.1" value="96" aria-label="Tuning">
+        <div class="btn-row">
+          <button class="px-btn" id="tune-down" aria-label="Tune down">◀</button>
+          <button class="px-btn" id="tune-up" aria-label="Tune up">▶</button>
+        </div>
       </div>
 
-      <div class="control">
-        <label for="volume">Volume</label>
-        <input type="range" id="volume" min="0" max="100" value="60">
-        <label for="time" style="margin-top:14px">Time of night</label>
-        <select id="time">
-          <option value="11pm">11:00 PM</option>
-          <option value="1am" selected>1:00 AM</option>
-          <option value="3am">3:00 AM</option>
-        </select>
+      <div class="note" style="--paper:#ffadad">
+        <h3>ANTENNA</h3>
+        <div class="val"><span id="ant-val">40</span>°</div>
+        <input type="range" id="antenna-range" min="0" max="180" value="40" aria-label="Antenna angle">
+        <small>or drag it on the radio</small>
       </div>
 
-      <div class="control callin">
-        <label for="call">Call in to 102.5 (press Enter)</label>
-        <input type="text" id="call" placeholder="say something to the night host..." autocomplete="off">
+      <div class="note" style="--paper:#fff275">
+        <h3>VOLUME</h3>
+        <div class="val" id="vol-val">60</div>
+        <input type="range" id="volume" min="0" max="100" value="60" aria-label="Volume">
+      </div>
+
+      <div class="note" style="--paper:#d7b8ff">
+        <h3>TIME</h3>
+        <div class="time-opts" role="radiogroup" aria-label="Time of night">
+          <label><input type="radio" name="time" value="11pm"><span>11:00 PM</span></label>
+          <label><input type="radio" name="time" value="1am" checked><span>1:00 AM</span></label>
+          <label><input type="radio" name="time" value="3am"><span>3:00 AM</span></label>
+        </div>
+      </div>
+
+      <div class="note" style="--paper:#ffc6ff">
+        <h3>CALL 102.5</h3>
+        <input type="text" id="call" placeholder="say something..." autocomplete="off" aria-label="Call-in message">
+        <div class="btn-row"><button class="px-btn" id="send">SEND</button></div>
+        <div class="reply" id="reply">the host is waiting.</div>
       </div>
     </div>
+  </section>
 
-    <p class="help">
-      <kbd>←</kbd><kbd>→</kbd> fine-tune &nbsp;·&nbsp; <kbd>Space</kbd> smack the radio (it sometimes helps)
-      &nbsp;·&nbsp; the signal drifts. stay with it.
-    </p>
-  </main>
+  <!-- the station log -->
+  <section class="line-wrap log" data-sag="34">
+    <div class="line-title">STATION LOG <span id="log-count">0/5</span> · click a note to flip it</div>
+    <svg class="rope" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><path class="shadow"/><path/></svg>
+    <div class="notes" id="log"></div>
+  </section>
+
+  <footer>
+    <kbd>←</kbd> <kbd>→</kbd> fine-tune &nbsp; <kbd>SPACE</kbd> smack &nbsp; scroll on the dial to nudge &nbsp;·&nbsp; the signal drifts. stay with it.
+  </footer>
+
+  <div class="banner" id="banner">LOG COMPLETE!<br>you are not alone<br>out here.</div>
 
   <script>
     const $ = (id) => document.getElementById(id);
 
     const STATIONS = [
-      { freq: 89.3, angle: 30, name: 'WOWL · night owl jazz', chord: [220, 261.6, 329.6, 392],
+      { freq: 89.3, angle: 30, name: 'WOWL night owl jazz', paper: '#4de8ff', chord: [220, 261.6, 329.6, 392],
+        hint: 'low on the dial. antenna leaning left. smooth sounds.',
+        memory: '"for the insomniacs, the night shift, the overthinkers."',
         lines: ['that was a slow one. here is another.', 'for the insomniacs, the night shift, the overthinkers.', 'keep your window cracked. the city is humming too.'] },
-      { freq: 94.7, angle: 120, name: 'KFOG · forecast for nowhere', chord: [196, 246.9, 293.7],
-        lines: ['tonight: scattered worries, clearing by morning.', 'a light drizzle of nostalgia over the east side.', 'winds of change, 5 to 10 miles per hour. nothing to worry about.'] },
-      { freq: 102.5, angle: 75, name: 'WCALL · the call-in hour', chord: [174.6, 220, 261.6],
-        lines: ['lines are open. what is keeping you up?', 'no caller yet. i will wait. i am good at waiting.', 'go ahead, caller. you are on the air.'] },
-      { freq: 106.1, angle: 160, name: '???? · numbers', chord: [110, 116.5],
-        lines: ['four. seven. seven. one. four.', 'nine. nine. nine. ...nine.', 'repeat. four. seven. seven.'] },
-      { freq: 99.9, angle: 90, name: 'the quiet hour', chord: [261.6, 329.6, 392, 493.9], secret: true,
+      { freq: 94.7, angle: 120, name: 'KFOG forecast for nowhere', paper: '#fff275', chord: [196, 246.9, 293.7],
+        hint: 'mid 90s. antenna tilted right. weather, but for feelings.',
+        memory: '"scattered worries, clearing by morning."',
+        lines: ['tonight: scattered worries, clearing by morning.', 'a light drizzle of nostalgia over the east side.', 'clear skies straight overhead around three. just saying.'] },
+      { freq: 99.9, angle: 90, name: 'the quiet hour', paper: '#ffd166', chord: [261.6, 329.6, 392, 493.9], secret: true,
+        hint: 'only at 3am. three of the same digit. point straight up.',
+        memory: '"you are not the only one awake."',
         lines: ['oh. you found us.', 'this station only exists at 3am, for whoever points straight up.', 'nothing to sell. nothing to say. just: you are not the only one awake.'] },
+      { freq: 102.5, angle: 75, name: 'WCALL the call-in hour', paper: '#ffc6ff', chord: [174.6, 220, 261.6],
+        hint: 'just past 102. antenna a bit left of straight up.',
+        memory: '"lines are open. what is keeping you up?"',
+        lines: ['lines are open. what is keeping you up?', 'no caller yet. use the CALL note. i will wait.', 'go ahead, caller. you are on the air.'] },
+      { freq: 106.1, angle: 160, name: '???? numbers', paper: '#ffadad', chord: [110, 116.5],
+        hint: 'way up high. antenna far right. it only counts.',
+        memory: '"four. seven. seven. one. four."',
+        lines: ['four. seven. seven. one. four.', 'nine. nine. nine. ...nine.', 'repeat. four. seven. seven.'] },
     ];
 
     const s = {
@@ -219,8 +442,137 @@
       signal: 0,
       lineIndex: 0,
       lineTimer: 0,
+      lockTicks: 0,
       caller: null,
+      found: new Set(),
     };
+
+    // ---------- scenery ----------
+    for (let i = 0; i < 46; i++) {
+      const star = document.createElement('i');
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 55 + '%';
+      star.style.animationDelay = -Math.random() * 2 + 's';
+      $('stars').appendChild(star);
+    }
+    for (let i = 0; i < 16; i++) $('eq').appendChild(document.createElement('i'));
+
+    function hangNotes() {
+      document.querySelectorAll('.line-wrap').forEach((wrap) => {
+        const sag = Number(wrap.dataset.sag);
+        const top = 10;
+        wrap.querySelectorAll('.rope path').forEach((p) =>
+          p.setAttribute('d', `M0,${top} Q500,${top + sag * 2} 1000,${top}`)
+        );
+        const notes = [...wrap.querySelectorAll('.notes > .note')];
+        const width = wrap.clientWidth;
+        notes.forEach((note, i) => {
+          const center = note.offsetLeft + note.offsetWidth / 2;
+          const t = Math.min(1, Math.max(0, center / width));
+          const ropeY = top + sag * 4 * t * (1 - t);
+          note.style.marginTop = ropeY + 14 + 'px';
+          note.style.setProperty('--delay', -i * 0.7 + 's');
+          note.style.setProperty('--dur', 3 + (i % 3) * 0.5 + 's');
+        });
+      });
+    }
+
+    function swing(el) {
+      const note = el.closest('.note');
+      if (!note) return;
+      note.classList.remove('swing');
+      void note.offsetWidth;
+      note.classList.add('swing');
+      setTimeout(() => note.classList.remove('swing'), 800);
+    }
+
+    function pop(text, x, y) {
+      const el = document.createElement('div');
+      el.className = 'pop';
+      el.textContent = text;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    // ---------- station log ----------
+    function buildLog() {
+      $('log').innerHTML = '';
+      STATIONS.forEach((st) => {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.dataset.freq = st.freq;
+        note.dataset.side = 'front';
+        note.addEventListener('click', () => flipNote(note, st));
+        $('log').appendChild(note);
+        drawLogNote(note, st);
+      });
+    }
+
+    function drawLogNote(note, st) {
+      const known = s.found.has(st.freq);
+      const back = note.dataset.side === 'back';
+      note.classList.toggle('unknown', !known);
+      note.style.setProperty('--paper', known ? st.paper : '#fff');
+
+      if (!known && !back) {
+        note.innerHTML = `<div class="q">?</div><div class="flip-hint">undiscovered<br>(flip for a hint)</div>`;
+      } else if (!known && back) {
+        note.innerHTML = `<h3>HINT</h3><small>${st.hint}</small>`;
+      } else if (!back) {
+        note.innerHTML = `<div class="stamp">${st.freq}</div><h3>${st.name}</h3><div class="flip-hint">flip me</div>`;
+      } else {
+        note.innerHTML = `<h3>HEARD</h3><small>${st.memory}</small>`;
+      }
+    }
+
+    function flipNote(note, st) {
+      note.classList.remove('flipping', 'clipped', 'swing');
+      void note.offsetWidth;
+      note.classList.add('flipping');
+      blip(660, 0.06);
+      setTimeout(() => {
+        note.dataset.side = note.dataset.side === 'front' ? 'back' : 'front';
+        drawLogNote(note, st);
+      }, 170);
+      setTimeout(() => note.classList.remove('flipping'), 350);
+    }
+
+    function discover(st) {
+      s.found.add(st.freq);
+      const note = $('log').querySelector(`[data-freq="${st.freq}"]`);
+      note.dataset.side = 'front';
+      drawLogNote(note, st);
+      note.classList.remove('clipped');
+      void note.offsetWidth;
+      note.classList.add('clipped');
+      setTimeout(() => note.classList.remove('clipped'), 1000);
+
+      $('log-count').textContent = `${s.found.size}/${STATIONS.length}`;
+      const r = $('screen').getBoundingClientRect();
+      pop('NEW NOTE!', r.left + r.width / 2 - 60, r.top);
+      blip(784, 0.08);
+      setTimeout(() => blip(1046, 0.12), 90);
+
+      if (s.found.size === STATIONS.length) celebrate();
+    }
+
+    function celebrate() {
+      $('banner').classList.add('show');
+      const colors = ['#ff4fa3', '#ffe14d', '#9dff5c', '#4de8ff', '#ff9f1c', '#d7b8ff'];
+      for (let i = 0; i < 70; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.top = -20 - Math.random() * 200 + 'px';
+        c.style.background = colors[i % colors.length];
+        c.style.animationDelay = Math.random() * 0.8 + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 3400);
+      }
+      setTimeout(() => $('banner').classList.remove('show'), 4000);
+    }
 
     // ---------- sound ----------
     let audio = null;
@@ -248,7 +600,7 @@
       const oscs = [0, 1, 2, 3].map(() => {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
-        o.type = 'triangle';
+        o.type = 'square';
         g.gain.value = 0;
         o.connect(g).connect(musicGain);
         o.start();
@@ -263,7 +615,7 @@
       const t = audio.ctx.currentTime;
       audio.master.gain.setTargetAtTime(s.on ? s.volume : 0, t, 0.1);
       audio.noiseGain.gain.setTargetAtTime((1 - s.signal) * 0.25, t, 0.08);
-      audio.musicGain.gain.setTargetAtTime(s.signal * 0.12, t, 0.15);
+      audio.musicGain.gain.setTargetAtTime(s.signal * 0.05, t, 0.15);
 
       const chord = s.station ? s.station.chord : [];
       audio.oscs.forEach(({ o, g }, i) => {
@@ -276,6 +628,20 @@
           g.gain.setTargetAtTime(0, t, 0.2);
         }
       });
+    }
+
+    function blip(freq, dur = 0.1) {
+      if (!audio || !s.on) return;
+      const t = audio.ctx.currentTime;
+      const o = audio.ctx.createOscillator();
+      const g = audio.ctx.createGain();
+      o.type = 'square';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.06 * s.volume, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(audio.ctx.destination);
+      o.start(t);
+      o.stop(t + dur);
     }
 
     // ---------- the signal model ----------
@@ -297,7 +663,7 @@
     }
 
     function garble(text, signal) {
-      const noise = '#%~*·:/';
+      const noise = '#%~*:/';
       return [...text].map((ch) => {
         if (ch === ' ') return ch;
         return Math.random() < signal + 0.08 ? ch : noise[Math.floor(Math.random() * noise.length)];
@@ -314,12 +680,12 @@
 
     function currentLine() {
       const st = s.station;
-      if (!st) return 'shhhhhhhhhhhhhhhhhhhhhhh';
+      if (!st) return 'shhhhhhhhhhhhhhhhhhhhhh';
 
       if (s.warmth > 60) {
         return st.secret
           ? 'stay as long as you like. the quiet hour is yours.'
-          : 'to whoever has stayed tuned this long — thank you. really.';
+          : 'to whoever has stayed tuned this long: thank you. really.';
       }
 
       if (st.freq === 102.5 && s.caller) return callerLine();
@@ -332,10 +698,38 @@
       if (!c.heard) {
         c.heard = garble(c.text, s.signal);
         c.clarity = s.signal;
+        let reply;
+        if (c.clarity > 0.8) reply = `host: "${c.text}"... beautifully said.`;
+        else if (c.clarity > 0.4) reply = `host: "${c.heard}"? you're breaking up.`;
+        else reply = `host: "${c.heard}"... wow. deep. next caller.`;
+        c.reply = reply;
+        $('reply').textContent = reply;
+        swing($('reply'));
       }
-      if (c.clarity > 0.8) return `caller says: "${c.text}" ...beautifully said. thank you for calling.`;
-      if (c.clarity > 0.4) return `caller says: "${c.heard}" — sorry, you're breaking up. try again?`;
-      return `caller says: "${c.heard}" ...wow. deep. very deep. next caller.`;
+      return 'caller says: ' + c.reply.replace(/^host: /, '');
+    }
+
+    // ---------- static + equalizer ----------
+    const staticCtx = $('static').getContext('2d');
+    const staticImg = staticCtx.createImageData(80, 40);
+
+    function drawStatic() {
+      const amount = s.on ? (1 - s.signal) * 0.55 : 0;
+      const d = staticImg.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const on = Math.random() < amount;
+        const shade = Math.random() < 0.5 ? 23 : 255;
+        d[i] = d[i + 1] = d[i + 2] = shade;
+        d[i + 3] = on ? 150 : 0;
+      }
+      staticCtx.putImageData(staticImg, 0, 0);
+    }
+
+    function drawEq() {
+      [...$('eq').children].forEach((bar, i) => {
+        const level = s.on ? s.signal * (0.3 + Math.random() * 0.7) * (1 - Math.abs(i - 7.5) / 12) : 0;
+        bar.style.height = Math.max(4, Math.round(level * 9) * 4) + 'px';
+      });
     }
 
     // ---------- render ----------
@@ -344,21 +738,24 @@
       document.body.dataset.mood = mood;
       document.body.dataset.time = s.time;
 
-      $('needle').style.left = ((s.freq - 88) / 20) * 100 + '%';
-      $('knob').style.setProperty('--angle', s.angle - 90 + 'deg');
+      $('needle').style.left = `calc(10px + (100% - 20px) * ${(s.freq - 88) / 20})`;
+      $('antenna').style.setProperty('--a', s.angle - 90 + 'deg');
+      $('tune-val').textContent = s.freq.toFixed(1);
+      $('ant-val').textContent = s.angle;
+
+      drawStatic();
+      drawEq();
 
       const screen = $('screen');
       screen.classList.toggle('off', !s.on);
+      $('mood-tag').textContent = mood;
       if (!s.on) return;
 
-      $('freq').textContent = s.freq.toFixed(1) + ' FM';
-      $('static').style.opacity = (1 - s.signal) * 0.9;
-
+      $('freq').textContent = s.freq.toFixed(1);
       const lit = Math.round(s.signal * 5);
       [...$('bars').children].forEach((bar, i) => bar.classList.toggle('on', i < lit));
 
-      const name = s.station ? s.station.name : 'no station';
-      $('station').textContent = garble(name, s.signal + 0.2) + '  ·  ' + mood;
+      $('station').textContent = s.station ? garble(s.station.name, s.signal + 0.2) : 'no station';
       $('line').textContent = garble(currentLine(), s.signal);
     }
 
@@ -379,12 +776,16 @@
         s.lineIndex = 0;
         s.lineTimer = 0;
         s.warmth = 0;
+        s.lockTicks = 0;
       }
       s.signal = signal;
 
       if (signal > 0.8) s.warmth = Math.min(100, s.warmth + 0.8);
       else if (signal > 0.5) s.warmth = Math.max(0, s.warmth - 0.5);
       else s.warmth = Math.max(0, s.warmth - 3);
+
+      s.lockTicks = signal > 0.8 ? s.lockTicks + 1 : 0;
+      if (station && s.lockTicks === 8 && !s.found.has(station.freq)) discover(station);
 
       s.lineTimer++;
       if (s.lineTimer > 22) {
@@ -398,59 +799,131 @@
     }, 200);
 
     // ---------- inputs ----------
-    $('power').addEventListener('click', () => {
+    function setFreq(next, isNudge) {
+      next = Math.max(88, Math.min(108, Math.round(next * 10) / 10));
+      // A big swing means hunting for a new station; small nudges are you fighting the drift.
+      if (!isNudge && Math.abs(next - s.freq) > 0.5) s.drift = 0;
+      s.freq = next;
+      $('tune').value = next;
+    }
+
+    function setAngle(next) {
+      s.angle = Math.round(Math.max(0, Math.min(180, next)));
+      $('antenna-range').value = s.angle;
+      $('antenna-hint').style.display = 'none';
+    }
+
+    $('power').addEventListener('click', (e) => {
       s.on = !s.on;
-      $('power').setAttribute('aria-pressed', s.on);
+      const btn = e.currentTarget;
+      btn.setAttribute('aria-pressed', s.on);
+      btn.textContent = s.on ? 'OFF' : 'ON';
       if (s.on && !audio) startAudio();
       if (audio && audio.ctx.state === 'suspended') audio.ctx.resume();
       if (!s.on) {
-        $('freq').textContent = '--.- FM';
+        s.signal = 0;
+        $('freq').textContent = '--.-';
         $('station').textContent = 'radio is off';
         $('line').textContent = 'goodnight.';
         [...$('bars').children].forEach((bar) => bar.classList.remove('on'));
       }
+      swing(btn);
       updateAudio();
       render();
+      blip(s.on ? 880 : 330, 0.12);
     });
 
-    $('tune').addEventListener('input', (e) => {
-      const next = Number(e.target.value);
-      // A big swing means hunting for a new station; small nudges are you fighting the drift.
-      if (Math.abs(next - s.freq) > 0.5) s.drift = 0;
-      s.freq = next;
-    });
-    $('antenna').addEventListener('input', (e) => { s.angle = Number(e.target.value); });
-    $('volume').addEventListener('input', (e) => { s.volume = Number(e.target.value) / 100; updateAudio(); });
-    $('time').addEventListener('change', (e) => { s.time = e.target.value; });
+    $('tune').addEventListener('input', (e) => setFreq(Number(e.target.value), false));
+    $('tune').addEventListener('change', (e) => swing(e.target));
+    $('tune-down').addEventListener('click', (e) => { setFreq(s.freq - 0.1, true); swing(e.target); blip(440, 0.04); });
+    $('tune-up').addEventListener('click', (e) => { setFreq(s.freq + 0.1, true); swing(e.target); blip(520, 0.04); });
 
-    $('call').addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' || !e.target.value.trim()) return;
-      s.caller = { text: e.target.value.trim(), heard: null, clarity: 0 };
-      e.target.value = '';
+    $('antenna-range').addEventListener('input', (e) => setAngle(Number(e.target.value)));
+    $('antenna-range').addEventListener('change', (e) => swing(e.target));
+
+    $('volume').addEventListener('input', (e) => {
+      s.volume = Number(e.target.value) / 100;
+      $('vol-val').textContent = e.target.value;
+      updateAudio();
     });
+    $('volume').addEventListener('change', (e) => swing(e.target));
+
+    document.querySelectorAll('input[name="time"]').forEach((r) =>
+      r.addEventListener('change', (e) => { s.time = e.target.value; swing(e.target); blip(600, 0.05); })
+    );
+
+    function sendCall() {
+      const input = $('call');
+      const text = input.value.trim();
+      if (!text) return;
+      s.caller = { text, heard: null, clarity: 0, reply: null };
+      input.value = '';
+      $('reply').textContent = s.on && s.station?.freq === 102.5
+        ? 'connecting...'
+        : 'queued. tune to 102.5 to hear the host.';
+      swing(input);
+      blip(700, 0.08);
+    }
+    $('send').addEventListener('click', sendCall);
+    $('call').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendCall(); });
+
+    // Drag the antenna on the radio itself.
+    let dragging = false;
+    $('antenna').addEventListener('pointerdown', (e) => {
+      dragging = true;
+      $('antenna').setPointerCapture(e.pointerId);
+    });
+    $('antenna').addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const base = $('antenna-base').getBoundingClientRect();
+      const dx = e.clientX - (base.left + base.width / 2);
+      const dy = e.clientY - base.top;
+      const deg = (Math.atan2(dx, -dy) * 180) / Math.PI;
+      setAngle(deg + 90);
+    });
+    $('antenna').addEventListener('pointerup', () => { dragging = false; });
+
+    // Scroll on the dial to nudge.
+    $('dial').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      setFreq(s.freq + (e.deltaY > 0 ? -0.1 : 0.1), true);
+    }, { passive: false });
+
+    function smack(x, y) {
+      const radio = $('radio');
+      radio.classList.remove('thunk');
+      void radio.offsetWidth;
+      radio.classList.add('thunk');
+      blip(90, 0.18);
+      // The classic fix: works most of the time. Not always.
+      const fixed = Math.random() < 0.6;
+      if (fixed) s.drift *= 0.15;
+      else s.drift += (Math.random() < 0.5 ? -0.35 : 0.35);
+      pop(fixed ? 'BONK! better.' : 'BONK! ...worse.', x, y);
+    }
+
+    $('speaker').addEventListener('click', (e) => smack(e.clientX - 50, e.clientY - 20));
 
     document.addEventListener('keydown', (e) => {
-      if (e.target.matches?.('input[type="text"], select')) return;
+      if (e.target.matches?.('input[type="text"]')) return;
+      const onSlider = e.target.matches?.('input');
 
-      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.matches?.('input')) {
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !onSlider) {
         e.preventDefault();
-        s.freq = Math.round((s.freq + (e.key === 'ArrowRight' ? 0.1 : -0.1)) * 10) / 10;
-        s.freq = Math.max(88, Math.min(108, s.freq));
-        $('tune').value = s.freq;
+        setFreq(s.freq + (e.key === 'ArrowRight' ? 0.1 : -0.1), true);
       }
 
       if (e.code === 'Space') {
         e.preventDefault();
-        const radio = $('radio');
-        radio.classList.remove('thunk');
-        void radio.offsetWidth;
-        radio.classList.add('thunk');
-        // The classic fix: works most of the time. Not always.
-        if (Math.random() < 0.6) s.drift *= 0.15;
-        else s.drift += (Math.random() < 0.5 ? -0.35 : 0.35);
+        const r = $('radio').getBoundingClientRect();
+        smack(r.left + 40, r.top + 20);
       }
     });
 
+    buildLog();
+    hangNotes();
+    window.addEventListener('resize', hangNotes);
+    document.fonts?.ready.then(hangNotes);
     render();
   </script>
 </body>
