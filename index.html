@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Late Night Radio</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Courier New", ui-monospace, monospace;
+      color: #f3e6cf;
+      background: radial-gradient(circle at 50% 40%, #2a2233, #0d0b12 70%);
+      transition: background 1.5s ease;
+    }
+    body[data-time="11pm"] { background: radial-gradient(circle at 50% 40%, #33304a, #12101a 70%); }
+    body[data-time="3am"]  { background: radial-gradient(circle at 50% 40%, #1a1622, #050407 70%); }
+    body[data-mood="warm"] { background: radial-gradient(circle at 50% 40%, #6b3b22, #140b08 70%); }
+
+    .radio {
+      width: min(720px, 94vw);
+      padding: 28px;
+      border-radius: 28px;
+      background: linear-gradient(#6b4a33, #4a3222);
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 30px 60px rgba(0,0,0,.6);
+      transition: box-shadow 1.5s ease;
+    }
+    body[data-mood="warm"] .radio {
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.15), 0 0 90px 10px rgba(255,150,70,.35), 0 30px 60px rgba(0,0,0,.6);
+    }
+
+    /* ---------- display ---------- */
+    .screen {
+      position: relative;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: #1c2a1f;
+      color: #9dff9d;
+      box-shadow: inset 0 0 30px rgba(0,0,0,.8);
+      min-height: 170px;
+      overflow: hidden;
+    }
+    .screen.off { color: #2d3d30; }
+    body[data-mood="warm"] .screen { color: #ffd59a; background: #2a1d12; }
+
+    .screen-top { display: flex; justify-content: space-between; align-items: baseline; }
+    .freq { font-size: 2.4rem; font-weight: bold; letter-spacing: 2px; }
+    .station { font-size: .95rem; opacity: .85; }
+    .line { margin-top: 14px; font-size: 1.05rem; line-height: 1.5; min-height: 3em; }
+
+    .bars { display: flex; gap: 4px; align-items: flex-end; height: 22px; }
+    .bars i { width: 7px; background: currentColor; opacity: .15; border-radius: 2px; }
+    .bars i.on { opacity: 1; }
+    .bars i:nth-child(1) { height: 20%; } .bars i:nth-child(2) { height: 40%; }
+    .bars i:nth-child(3) { height: 60%; } .bars i:nth-child(4) { height: 80%; }
+    .bars i:nth-child(5) { height: 100%; }
+
+    .static {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.08) 0 1px, transparent 1px 3px);
+      opacity: 0;
+      animation: flicker .12s steps(2) infinite;
+    }
+    @keyframes flicker { 50% { transform: translateY(1px); } }
+
+    /* ---------- dial strip ---------- */
+    .dial {
+      position: relative;
+      margin: 20px 0 6px;
+      height: 46px;
+      border-radius: 10px;
+      background: #f1e3c4;
+      color: #3a2a1d;
+      font-size: .75rem;
+      overflow: hidden;
+    }
+    .ticks { position: absolute; inset: 0; display: flex; justify-content: space-between; padding: 6px 14px; }
+    .needle {
+      position: absolute; top: 0; bottom: 0; width: 3px;
+      background: #c0392b;
+      transition: left .15s ease;
+    }
+    input[type="range"] { width: 100%; accent-color: #e9b872; }
+
+    /* ---------- controls ---------- */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+      align-items: start;
+    }
+    .control label, .control .title { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; opacity: .85; }
+
+    .knob {
+      width: 74px; height: 74px; margin: 0 auto 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #d9c6a3, #8a7354);
+      position: relative;
+      box-shadow: 0 6px 12px rgba(0,0,0,.4);
+    }
+    .knob::after {
+      content: ""; position: absolute; left: 50%; top: 6px;
+      width: 4px; height: 24px; margin-left: -2px;
+      background: #3a2a1d; border-radius: 2px;
+      transform-origin: 2px 31px;
+      transform: rotate(var(--angle, 0deg));
+    }
+
+    .power {
+      width: 100%;
+      padding: 12px;
+      border: none; border-radius: 12px;
+      font: inherit; font-weight: bold; letter-spacing: 2px;
+      background: #2a1d14; color: #f3e6cf;
+      cursor: pointer;
+    }
+    .power[aria-pressed="true"] { background: #e9b872; color: #2a1d14; }
+
+    select, input[type="text"] {
+      width: 100%; padding: 9px 10px;
+      font: inherit; font-size: .9rem;
+      background: #f1e3c4; color: #2a1d14;
+      border: none; border-radius: 8px;
+    }
+
+    .callin { grid-column: 1 / -1; }
+    .help { margin: 16px 0 0; font-size: .78rem; opacity: .6; line-height: 1.5; }
+    kbd { padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.15); }
+
+    .radio.thunk { animation: thunk .25s ease; }
+    @keyframes thunk { 30% { transform: translateY(6px) rotate(-.6deg); } }
+
+    @media (max-width: 620px) { .controls { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-time="1am" data-mood="off">
+  <main class="radio" id="radio">
+    <section class="screen off" id="screen" aria-live="polite">
+      <div class="static" id="static"></div>
+      <div class="screen-top">
+        <span class="freq" id="freq">--.- FM</span>
+        <span class="bars" id="bars" aria-label="Signal strength"><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+      <div class="station" id="station">radio is off</div>
+      <p class="line" id="line">press POWER. it's late. someone is out there.</p>
+    </section>
+
+    <div class="dial" aria-hidden="true">
+      <div class="ticks"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span></div>
+      <div class="needle" id="needle"></div>
+    </div>
+    <input type="range" id="tune" min="88" max="108" step="0.1" value="96" aria-label="Tuning">
+
+    <div class="controls">
+      <div class="control">
+        <span class="title">Power</span>
+        <button class="power" id="power" aria-pressed="false">POWER</button>
+      </div>
+
+      <div class="control">
+        <label for="antenna">Antenna</label>
+        <div class="knob" id="knob"></div>
+        <input type="range" id="antenna" min="0" max="180" value="40">
+      </div>
+
+      <div class="control">
+        <label for="volume">Volume</label>
+        <input type="range" id="volume" min="0" max="100" value="60">
+        <label for="time" style="margin-top:14px">Time of night</label>
+        <select id="time">
+          <option value="11pm">11:00 PM</option>
+          <option value="1am" selected>1:00 AM</option>
+          <option value="3am">3:00 AM</option>
+        </select>
+      </div>
+
+      <div class="control callin">
+        <label for="call">Call in to 102.5 (press Enter)</label>
+        <input type="text" id="call" placeholder="say something to the night host..." autocomplete="off">
+      </div>
+    </div>
+
+    <p class="help">
+      <kbd>←</kbd><kbd>→</kbd> fine-tune &nbsp;·&nbsp; <kbd>Space</kbd> smack the radio (it sometimes helps)
+      &nbsp;·&nbsp; the signal drifts. stay with it.
+    </p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const STATIONS = [
+      { freq: 89.3, angle: 30, name: 'WOWL · night owl jazz', chord: [220, 261.6, 329.6, 392],
+        lines: ['that was a slow one. here is another.', 'for the insomniacs, the night shift, the overthinkers.', 'keep your window cracked. the city is humming too.'] },
+      { freq: 94.7, angle: 120, name: 'KFOG · forecast for nowhere', chord: [196, 246.9, 293.7],
+        lines: ['tonight: scattered worries, clearing by morning.', 'a light drizzle of nostalgia over the east side.', 'winds of change, 5 to 10 miles per hour. nothing to worry about.'] },
+      { freq: 102.5, angle: 75, name: 'WCALL · the call-in hour', chord: [174.6, 220, 261.6],
+        lines: ['lines are open. what is keeping you up?', 'no caller yet. i will wait. i am good at waiting.', 'go ahead, caller. you are on the air.'] },
+      { freq: 106.1, angle: 160, name: '???? · numbers', chord: [110, 116.5],
+        lines: ['four. seven. seven. one. four.', 'nine. nine. nine. ...nine.', 'repeat. four. seven. seven.'] },
+      { freq: 99.9, angle: 90, name: 'the quiet hour', chord: [261.6, 329.6, 392, 493.9], secret: true,
+        lines: ['oh. you found us.', 'this station only exists at 3am, for whoever points straight up.', 'nothing to sell. nothing to say. just: you are not the only one awake.'] },
+    ];
+
+    const s = {
+      on: false,
+      freq: 96,
+      angle: 40,
+      volume: 0.6,
+      time: '1am',
+      drift: 0,
+      warmth: 0,
+      station: null,
+      signal: 0,
+      lineIndex: 0,
+      lineTimer: 0,
+      caller: null,
+    };
+
+    // ---------- sound ----------
+    let audio = null;
+
+    function startAudio() {
+      const ctx = new AudioContext();
+      const master = ctx.createGain();
+      master.connect(ctx.destination);
+
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+      const noiseGain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1800;
+      noise.connect(filter).connect(noiseGain).connect(master);
+      noise.start();
+
+      const musicGain = ctx.createGain();
+      musicGain.connect(master);
+      const oscs = [0, 1, 2, 3].map(() => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        g.gain.value = 0;
+        o.connect(g).connect(musicGain);
+        o.start();
+        return { o, g };
+      });
+
+      audio = { ctx, master, noiseGain, musicGain, oscs };
+    }
+
+    function updateAudio() {
+      if (!audio) return;
+      const t = audio.ctx.currentTime;
+      audio.master.gain.setTargetAtTime(s.on ? s.volume : 0, t, 0.1);
+      audio.noiseGain.gain.setTargetAtTime((1 - s.signal) * 0.25, t, 0.08);
+      audio.musicGain.gain.setTargetAtTime(s.signal * 0.12, t, 0.15);
+
+      const chord = s.station ? s.station.chord : [];
+      audio.oscs.forEach(({ o, g }, i) => {
+        if (chord[i]) {
+          // A slight wobble when the signal is weak, like a warped tape.
+          const wobble = (1 - s.signal) * Math.sin(t * 6 + i) * 6;
+          o.frequency.setTargetAtTime(chord[i] + wobble, t, 0.05);
+          g.gain.setTargetAtTime(0.25, t, 0.2);
+        } else {
+          g.gain.setTargetAtTime(0, t, 0.2);
+        }
+      });
+    }
+
+    // ---------- the signal model ----------
+    function availableStations() {
+      return STATIONS.filter((st) => !st.secret || s.time === '3am');
+    }
+
+    function measure() {
+      const heard = s.freq + s.drift;
+      let best = null;
+      let bestSignal = 0;
+      for (const st of availableStations()) {
+        const freqScore = Math.max(0, 1 - Math.abs(heard - st.freq) / 0.6);
+        const antScore = 0.35 + 0.65 * Math.max(0, 1 - Math.abs(s.angle - st.angle) / 70);
+        const signal = Math.pow(freqScore, 1.5) * antScore;
+        if (signal > bestSignal) { best = st; bestSignal = signal; }
+      }
+      return { station: bestSignal > 0.05 ? best : null, signal: bestSignal };
+    }
+
+    function garble(text, signal) {
+      const noise = '#%~*·:/';
+      return [...text].map((ch) => {
+        if (ch === ' ') return ch;
+        return Math.random() < signal + 0.08 ? ch : noise[Math.floor(Math.random() * noise.length)];
+      }).join('');
+    }
+
+    function moodFor(signal) {
+      if (!s.on) return 'off';
+      if (s.warmth > 60) return 'warm';
+      if (signal > 0.8) return 'locked';
+      if (signal > 0.35) return 'almost';
+      return 'lost';
+    }
+
+    function currentLine() {
+      const st = s.station;
+      if (!st) return 'shhhhhhhhhhhhhhhhhhhhhhh';
+
+      if (s.warmth > 60) {
+        return st.secret
+          ? 'stay as long as you like. the quiet hour is yours.'
+          : 'to whoever has stayed tuned this long — thank you. really.';
+      }
+
+      if (st.freq === 102.5 && s.caller) return callerLine();
+      return st.lines[s.lineIndex % st.lines.length];
+    }
+
+    // The host only hears what the signal lets through, and responds to *that*.
+    function callerLine() {
+      const c = s.caller;
+      if (!c.heard) {
+        c.heard = garble(c.text, s.signal);
+        c.clarity = s.signal;
+      }
+      if (c.clarity > 0.8) return `caller says: "${c.text}" ...beautifully said. thank you for calling.`;
+      if (c.clarity > 0.4) return `caller says: "${c.heard}" — sorry, you're breaking up. try again?`;
+      return `caller says: "${c.heard}" ...wow. deep. very deep. next caller.`;
+    }
+
+    // ---------- render ----------
+    function render() {
+      const mood = moodFor(s.signal);
+      document.body.dataset.mood = mood;
+      document.body.dataset.time = s.time;
+
+      $('needle').style.left = ((s.freq - 88) / 20) * 100 + '%';
+      $('knob').style.setProperty('--angle', s.angle - 90 + 'deg');
+
+      const screen = $('screen');
+      screen.classList.toggle('off', !s.on);
+      if (!s.on) return;
+
+      $('freq').textContent = s.freq.toFixed(1) + ' FM';
+      $('static').style.opacity = (1 - s.signal) * 0.9;
+
+      const lit = Math.round(s.signal * 5);
+      [...$('bars').children].forEach((bar, i) => bar.classList.toggle('on', i < lit));
+
+      const name = s.station ? s.station.name : 'no station';
+      $('station').textContent = garble(name, s.signal + 0.2) + '  ·  ' + mood;
+      $('line').textContent = garble(currentLine(), s.signal);
+    }
+
+    // ---------- the heartbeat ----------
+    const DRIFT = { '11pm': 0.006, '1am': 0.012, '3am': 0.02 };
+
+    setInterval(() => {
+      if (!s.on) return render();
+
+      // Patience is rewarded: the warmer it gets, the less it drifts.
+      const restless = DRIFT[s.time] * (1 - s.warmth / 140);
+      s.drift += (Math.random() - 0.5) * restless + restless * 0.15;
+      s.drift = Math.max(-0.6, Math.min(0.6, s.drift));
+
+      const { station, signal } = measure();
+      if (station !== s.station) {
+        s.station = station;
+        s.lineIndex = 0;
+        s.lineTimer = 0;
+        s.warmth = 0;
+      }
+      s.signal = signal;
+
+      if (signal > 0.8) s.warmth = Math.min(100, s.warmth + 0.8);
+      else if (signal > 0.5) s.warmth = Math.max(0, s.warmth - 0.5);
+      else s.warmth = Math.max(0, s.warmth - 3);
+
+      s.lineTimer++;
+      if (s.lineTimer > 22) {
+        s.lineTimer = 0;
+        s.lineIndex++;
+        if (s.caller?.heard) s.caller = null;
+      }
+
+      updateAudio();
+      render();
+    }, 200);
+
+    // ---------- inputs ----------
+    $('power').addEventListener('click', () => {
+      s.on = !s.on;
+      $('power').setAttribute('aria-pressed', s.on);
+      if (s.on && !audio) startAudio();
+      if (audio && audio.ctx.state === 'suspended') audio.ctx.resume();
+      if (!s.on) {
+        $('freq').textContent = '--.- FM';
+        $('station').textContent = 'radio is off';
+        $('line').textContent = 'goodnight.';
+        [...$('bars').children].forEach((bar) => bar.classList.remove('on'));
+      }
+      updateAudio();
+      render();
+    });
+
+    $('tune').addEventListener('input', (e) => {
+      const next = Number(e.target.value);
+      // A big swing means hunting for a new station; small nudges are you fighting the drift.
+      if (Math.abs(next - s.freq) > 0.5) s.drift = 0;
+      s.freq = next;
+    });
+    $('antenna').addEventListener('input', (e) => { s.angle = Number(e.target.value); });
+    $('volume').addEventListener('input', (e) => { s.volume = Number(e.target.value) / 100; updateAudio(); });
+    $('time').addEventListener('change', (e) => { s.time = e.target.value; });
+
+    $('call').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || !e.target.value.trim()) return;
+      s.caller = { text: e.target.value.trim(), heard: null, clarity: 0 };
+      e.target.value = '';
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.matches?.('input[type="text"], select')) return;
+
+      if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.matches?.('input')) {
+        e.preventDefault();
+        s.freq = Math.round((s.freq + (e.key === 'ArrowRight' ? 0.1 : -0.1)) * 10) / 10;
+        s.freq = Math.max(88, Math.min(108, s.freq));
+        $('tune').value = s.freq;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const radio = $('radio');
+        radio.classList.remove('thunk');
+        void radio.offsetWidth;
+        radio.classList.add('thunk');
+        // The classic fix: works most of the time. Not always.
+        if (Math.random() < 0.6) s.drift *= 0.15;
+        else s.drift += (Math.random() < 0.5 ? -0.35 : 0.35);
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
