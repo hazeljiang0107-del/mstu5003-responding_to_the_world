@@ -174,6 +174,25 @@
     .dial-marks { position: absolute; left: 10px; right: 10px; bottom: 0; height: 8px;
       background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 12px); }
     .needle { position: absolute; top: -8px; bottom: -8px; width: 6px; margin-left: -3px; background: #ff2e2e; border: 2px solid var(--ink); }
+    .dial { touch-action: none; }
+
+    .warmth {
+      display: grid; grid-template-columns: auto 1fr 90px; gap: 10px; align-items: center;
+      margin-top: 14px;
+      font-family: "Press Start 2P"; font-size: 9px; color: #fff; text-shadow: 2px 2px 0 var(--ink);
+    }
+    .warmth-bar { height: 16px; background: var(--ink); border: 3px solid var(--ink); }
+    .warmth-bar i {
+      display: block; height: 100%; width: 0;
+      background: repeating-linear-gradient(90deg, var(--yellow) 0 8px, var(--orange) 8px 16px);
+      transition: width .3s steps(4);
+    }
+
+    body[data-mood="sulking"] .screen { background: #c9b6ff; color: #2b1466; box-shadow: inset 6px 6px 0 #a68cff; }
+    body[data-mood="sulking"] .mood-tag { background: #2b1466; color: #c9b6ff; }
+    body[data-mood="sulking"] .radio { filter: saturate(.6); }
+
+    .px-btn.tiny { font-size: 8px; padding: 3px 6px; box-shadow: 2px 2px 0 var(--ink); vertical-align: middle; }
 
     .pop {
       position: fixed; z-index: 50; pointer-events: none;
@@ -332,10 +351,16 @@
       </section>
     </div>
 
-    <div class="dial" id="dial" title="Scroll here to fine-tune">
+    <div class="dial" id="dial" title="Click or drag to tune">
       <div class="ticks"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span></div>
       <div class="dial-marks"></div>
       <div class="needle" id="needle"></div>
+    </div>
+
+    <div class="warmth" aria-label="Warmth">
+      <span>WARMTH</span>
+      <div class="warmth-bar"><i id="warmth-fill"></i></div>
+      <span id="warmth-label">cold</span>
     </div>
   </main>
 
@@ -393,13 +418,13 @@
 
   <!-- the station log -->
   <section class="line-wrap log" data-sag="34">
-    <div class="line-title">STATION LOG <span id="log-count">0/5</span> · click a note to flip it</div>
+    <div class="line-title">STATION LOG <span id="log-count">0/5</span> · click a note to flip it · <button class="px-btn tiny" id="reset-log">RESET</button></div>
     <svg class="rope" viewBox="0 0 1000 120" preserveAspectRatio="none" aria-hidden="true"><path class="shadow"/><path/></svg>
     <div class="notes" id="log"></div>
   </section>
 
   <footer>
-    <kbd>←</kbd> <kbd>→</kbd> fine-tune &nbsp; <kbd>SPACE</kbd> smack &nbsp; scroll on the dial to nudge &nbsp;·&nbsp; the signal drifts. stay with it.
+    <kbd>←</kbd> <kbd>→</kbd> fine-tune &nbsp; <kbd>SPACE</kbd> smack &nbsp; drag the dial to tune &nbsp;·&nbsp; the signal drifts. stay with it.
   </footer>
 
   <div class="banner" id="banner">LOG COMPLETE!<br>you are not alone<br>out here.</div>
@@ -444,8 +469,19 @@
       lineTimer: 0,
       lockTicks: 0,
       caller: null,
-      found: new Set(),
+      lastCall: null,
+      searchTicks: 0,
+      smacks: [],
+      sulkUntil: 0,
+      found: new Set(JSON.parse(localStorage.getItem('lnr-found') || '[]')),
     };
+
+    const HINT_UNLOCK_TICKS = 150;
+    const WARM_AT = 60;
+
+    function saveLog() {
+      localStorage.setItem('lnr-found', JSON.stringify([...s.found]));
+    }
 
     // ---------- scenery ----------
     for (let i = 0; i < 46; i++) {
@@ -518,6 +554,9 @@
 
       if (!known && !back) {
         note.innerHTML = `<div class="q">?</div><div class="flip-hint">undiscovered<br>(flip for a hint)</div>`;
+      } else if (!known && back && s.searchTicks < HINT_UNLOCK_TICKS) {
+        const secondsLeft = Math.ceil((HINT_UNLOCK_TICKS - s.searchTicks) / 5);
+        note.innerHTML = `<h3>NOT YET</h3><small>keep searching. hint unlocks in ${secondsLeft}s of listening.</small>`;
       } else if (!known && back) {
         note.innerHTML = `<h3>HINT</h3><small>${st.hint}</small>`;
       } else if (!back) {
@@ -541,6 +580,7 @@
 
     function discover(st) {
       s.found.add(st.freq);
+      saveLog();
       const note = $('log').querySelector(`[data-freq="${st.freq}"]`);
       note.dataset.side = 'front';
       drawLogNote(note, st);
@@ -672,20 +712,34 @@
 
     function moodFor(signal) {
       if (!s.on) return 'off';
-      if (s.warmth > 60) return 'warm';
+      if (Date.now() < s.sulkUntil) return 'sulking';
+      if (s.warmth > WARM_AT) return 'warm';
       if (signal > 0.8) return 'locked';
       if (signal > 0.35) return 'almost';
       return 'lost';
     }
 
+    function moodLabel(mood) {
+      switch (mood) {
+        case 'lost':    return 'lost in static';
+        case 'almost':  return 'almost...';
+        case 'locked':  return 'locked in';
+        case 'warm':    return 'warm';
+        case 'sulking': return 'sulking';
+        default:        return 'off';
+      }
+    }
+
     function currentLine() {
+      if (Date.now() < s.sulkUntil) return 'ow. stop hitting me. i am trying my best.';
+
       const st = s.station;
       if (!st) return 'shhhhhhhhhhhhhhhhhhhhhh';
 
-      if (s.warmth > 60) {
-        return st.secret
-          ? 'stay as long as you like. the quiet hour is yours.'
-          : 'to whoever has stayed tuned this long: thank you. really.';
+      if (s.warmth > WARM_AT) {
+        if (st.secret) return 'stay as long as you like. the quiet hour is yours.';
+        if (s.lastCall) return `still thinking about what you said earlier: "${s.lastCall}". me too.`;
+        return 'to whoever has stayed tuned this long: thank you. really.';
       }
 
       if (st.freq === 102.5 && s.caller) return callerLine();
@@ -699,7 +753,11 @@
         c.heard = garble(c.text, s.signal);
         c.clarity = s.signal;
         let reply;
-        if (c.clarity > 0.8) reply = `host: "${c.text}"... beautifully said.`;
+        if (c.clarity > 0.8) {
+          reply = `host: "${c.text}"... beautifully said.`;
+          // Only a call that came through clearly is worth remembering.
+          s.lastCall = c.text;
+        }
         else if (c.clarity > 0.4) reply = `host: "${c.heard}"? you're breaking up.`;
         else reply = `host: "${c.heard}"... wow. deep. next caller.`;
         c.reply = reply;
@@ -746,9 +804,13 @@
       drawStatic();
       drawEq();
 
+      const warmthPct = Math.min(100, (s.warmth / WARM_AT) * 100);
+      $('warmth-fill').style.width = warmthPct + '%';
+      $('warmth-label').textContent = warmthPct >= 100 ? 'glowing' : warmthPct > 50 ? 'warming' : warmthPct > 0 ? 'flicker' : 'cold';
+
       const screen = $('screen');
       screen.classList.toggle('off', !s.on);
-      $('mood-tag').textContent = mood;
+      $('mood-tag').textContent = moodLabel(mood);
       if (!s.on) return;
 
       $('freq').textContent = s.freq.toFixed(1);
@@ -756,7 +818,7 @@
       [...$('bars').children].forEach((bar, i) => bar.classList.toggle('on', i < lit));
 
       $('station').textContent = s.station ? garble(s.station.name, s.signal + 0.2) : 'no station';
-      $('line').textContent = garble(currentLine(), s.signal);
+      $('line').textContent = mood === 'sulking' ? currentLine() : garble(currentLine(), s.signal);
     }
 
     // ---------- the heartbeat ----------
@@ -783,6 +845,8 @@
       if (signal > 0.8) s.warmth = Math.min(100, s.warmth + 0.8);
       else if (signal > 0.5) s.warmth = Math.max(0, s.warmth - 0.5);
       else s.warmth = Math.max(0, s.warmth - 3);
+
+      if (signal <= 0.8) s.searchTicks++;
 
       s.lockTicks = signal > 0.8 ? s.lockTicks + 1 : 0;
       if (station && s.lockTicks === 8 && !s.found.has(station.freq)) discover(station);
@@ -883,11 +947,22 @@
     });
     $('antenna').addEventListener('pointerup', () => { dragging = false; });
 
-    // Scroll on the dial to nudge.
-    $('dial').addEventListener('wheel', (e) => {
-      e.preventDefault();
-      setFreq(s.freq + (e.deltaY > 0 ? -0.1 : 0.1), true);
-    }, { passive: false });
+    // Click or drag on the dial. The first click is a jump; dragging after it counts as nudging.
+    let tuningByDial = false;
+    function freqFromDial(e) {
+      const r = $('dial').getBoundingClientRect();
+      const t = (e.clientX - r.left - 10) / (r.width - 20);
+      return 88 + Math.max(0, Math.min(1, t)) * 20;
+    }
+    $('dial').addEventListener('pointerdown', (e) => {
+      tuningByDial = true;
+      $('dial').setPointerCapture(e.pointerId);
+      setFreq(freqFromDial(e), false);
+    });
+    $('dial').addEventListener('pointermove', (e) => {
+      if (tuningByDial) setFreq(freqFromDial(e), true);
+    });
+    $('dial').addEventListener('pointerup', () => { tuningByDial = false; });
 
     function smack(x, y) {
       const radio = $('radio');
@@ -895,6 +970,22 @@
       void radio.offsetWidth;
       radio.classList.add('thunk');
       blip(90, 0.18);
+
+      const now = Date.now();
+      if (now < s.sulkUntil) {
+        pop('...', x, y);
+        return;
+      }
+      s.smacks = s.smacks.filter((t) => now - t < 4000);
+      s.smacks.push(now);
+      if (s.smacks.length >= 3) {
+        s.sulkUntil = now + 6000;
+        s.smacks = [];
+        s.warmth = 0;
+        pop('OW. RUDE.', x, y);
+        return;
+      }
+
       // The classic fix: works most of the time. Not always.
       const fixed = Math.random() < 0.6;
       if (fixed) s.drift *= 0.15;
@@ -920,7 +1011,16 @@
       }
     });
 
+    $('reset-log').addEventListener('click', () => {
+      s.found.clear();
+      saveLog();
+      buildLog();
+      hangNotes();
+      $('log-count').textContent = `0/${STATIONS.length}`;
+    });
+
     buildLog();
+    $('log-count').textContent = `${s.found.size}/${STATIONS.length}`;
     hangNotes();
     window.addEventListener('resize', hangNotes);
     document.fonts?.ready.then(hangNotes);
