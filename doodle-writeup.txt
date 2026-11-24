@@ -1,0 +1,38 @@
+Late Night Radio
+Hazel Jiang
+
+Live project: https://hazeljiang0107-del.github.io/mstu5003-responding_to_the_world/
+GitHub repository: https://github.com/hazeljiang0107-del/mstu5003-responding_to_the_world
+AI transcript: ADD LINK HERE
+
+
+CONCEPT
+
+Late Night Radio is a pixel art radio that you tune by hand at night, trying to find someone out there. The controls are paper notes clipped to a clothesline. The frequency and the antenna angle together decide the signal strength, so getting only one right still leaves you in static. A weak signal breaks the words on the screen into random symbols. The signal slowly drifts, so you have to keep tending it. If you hold a clean signal long enough, the radio glows warm and the host speaks to you directly. Each station you find gets clipped onto a Station Log rope, and there is a secret station that only exists at 3 AM.
+
+INSERT SCREENSHOT HERE
+
+
+DESIGN REFLECTION
+
+I wanted to capture the feeling of being awake when everyone else is asleep. It starts lonely, then becomes comforting when you find a voice. I designed it to range from delightfully frustrating, because the signal never stays put and smacking the radio sometimes makes it worse, to deeply satisfying, when the static finally snaps into clear words. The biggest reward is for patience rather than clicking. Being heard happens when you keep listening.
+
+I chose sliders for tuning and the antenna because I wanted people to search instead of picking from a menu. A dropdown of stations would have removed the whole feeling. The time of night is three radio buttons because it is a setting, not something you fine tune. The call-in box is the only place you speak, and the host answers back through the same noisy channel, so your words are only heard as clearly as you have tuned. I chose a bright pixel style on purpose so the night feels hopeful instead of gloomy.
+
+
+PROCESS
+
+Variables and states. One state object tracks power, frequency, antenna angle, volume, time of night, drift, signal, warmth, the last clear call, smack timestamps, and the set of found stations. A mood is derived from these every 200 milliseconds: off, lost, almost, locked, warm, or sulking.
+
+How combinations work. Signal strength is the frequency score multiplied by the antenna score, so both must be right. Signal combined with the screen decides how much text survives the static. Signal combined with a call-in decides whether the host hears you clearly, mishears you, or reads your garbled words back as something deep. Time of night combined with frequency and antenna unlocks the secret station. Holding a strong signal builds warmth, and warmth in turn reduces drift. Smacking three times within four seconds makes the radio sulk and refuse to help.
+
+Challenges and revisions. My first idea was a moody creature. After building a draft I decided it felt too familiar and started over with the radio, because a radio naturally has inputs that only work together. In the first radio version the drift was so strong that after twenty seconds nothing could lock at all. It felt broken, not frustrating in a fun way, so I reduced it and made a big swing of the dial reset the drift while small nudges count as fighting it. The warm state also reset at every tiny dip, so it was almost unreachable. I softened that. Later, during testing, the dial suddenly jumped to 88 by itself. Scrolling the page while the cursor passed over the dial was retuning the radio. I replaced scroll tuning with click and drag on the dial. In my discussion post I asked whether the hints were too generous and whether the host should remember you. I answered both in code. Hints now unlock only after thirty seconds of searching, and a call that comes through clearly is remembered and brought up later when the radio glows warm.
+
+
+AI LEARNING
+
+I built this with an AI coding assistant in Cursor. The most useful prompt was asking for a signal strength made from frequency and antenna, where being right on only one gives a weak signal. The answer was to multiply the two scores instead of adding them. Adding let you cheat with one correct input, which made the antenna pointless.
+
+The AI was good at generating structure fast: the audio setup, the state object, the pixel styling. It could not tell me how the radio felt. Every important revision came from playing it and noticing something was off, like the drift that made success impossible or the dial that moved by itself. I also pushed back on the design. The first radio was dark and moody. I asked for something brighter, more pixelated, and more interactive, and suggested the notes on a clothesline idea myself, which became the identity of the project.
+
+What changed in my thinking is that the feeling of an interaction lives in the numbers. Whether drift is frustrating or fun, or whether warmth is a reward or out of reach, came down to small values I only found by testing. AI got me to a working system quickly, but deciding when it felt right was my job.
